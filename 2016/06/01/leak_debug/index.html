@@ -4,17 +4,43 @@
   <meta charset="utf-8">
   
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
-  <title>Hexo</title>
+  <title>一次曲折的内存泄漏debug记录 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="http://huohuoluo.github.io/index.html">
+  <meta name="description" content="先介绍问题JSAPI广播监听者为1个时，登录后会弹出两次对话框。  低概率出现。
+问题诊断判断是JSAPIBridgeImpl实例的内存泄漏。
+首先要抓出泄漏源。反复试了很多次，发现启动测试页面，如果按以下步骤操作，有机会重现：
+
+进入JSAPI测试网页；
+进入基金购买界面，然后等待超时锁屏；
+不登录，直接退出到首页。（退出过程中不会出现JSAPI测试网页）
+重新进入JSAPI测试网页，点击登录。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次曲折的内存泄漏debug记录">
+<meta property="og:url" content="http://huohuoluo.github.io/2016/06/01/leak_debug/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description">
+<meta property="og:description" content="先介绍问题JSAPI广播监听者为1个时，登录后会弹出两次对话框。  低概率出现。
+问题诊断判断是JSAPIBridgeImpl实例的内存泄漏。
+首先要抓出泄漏源。反复试了很多次，发现启动测试页面，如果按以下步骤操作，有机会重现：
+
+进入JSAPI测试网页；
+进入基金购买界面，然后等待超时锁屏；
+不登录，直接退出到首页。（退出过程中不会出现JSAPI测试网页）
+重新进入JSAPI测试网页，点击登录。">
+<meta property="og:image" content="http://huohuoluo.github.io/img/leak1.png">
+<meta property="og:image" content="http://huohuoluo.github.io/img/leak2.png">
+<meta property="og:image" content="http://huohuoluo.github.io/img/leak3.png">
+<meta property="og:updated_time" content="2016-06-01T13:05:45.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
-<meta name="twitter:description">
+<meta name="twitter:title" content="一次曲折的内存泄漏debug记录">
+<meta name="twitter:description" content="先介绍问题JSAPI广播监听者为1个时，登录后会弹出两次对话框。  低概率出现。
+问题诊断判断是JSAPIBridgeImpl实例的内存泄漏。
+首先要抓出泄漏源。反复试了很多次，发现启动测试页面，如果按以下步骤操作，有机会重现：
+
+进入JSAPI测试网页；
+进入基金购买界面，然后等待超时锁屏；
+不登录，直接退出到首页。（退出过程中不会出现JSAPI测试网页）
+重新进入JSAPI测试网页，点击登录。">
+<meta name="twitter:image" content="http://huohuoluo.github.io/img/leak1.png">
   
     <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
@@ -171,9 +197,7 @@
 	</div>
 </nav>
 
-      <div class="body-wrap">
-  
-    <article id="post-leak_debug" class="article article-type-post" itemscope itemprop="blogPost">
+      <div class="body-wrap"><article id="post-leak_debug" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
       <a href="/2016/06/01/leak_debug/" class="article-date">
@@ -189,12 +213,23 @@
       <header class="article-header">
         
   
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/06/01/leak_debug/">一次曲折的内存泄漏debug记录</a>
+    <h1 class="article-title" itemprop="name">
+      一次曲折的内存泄漏debug记录
     </h1>
   
 
       </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/内存管理/">内存管理</a></li></ul>
+	</div>
+
+        
+
+        <div class="clearfix"></div>
+      </div>
       
     
     <div class="article-entry" itemprop="articleBody">
@@ -224,20 +259,19 @@
       
     </div>
     
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/内存管理/">内存管理</a></li></ul>
-	</div>
-
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
   </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/05/31/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Hello World</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
   
 </article>
 
@@ -246,72 +280,28 @@
 
 
 
-
-
-
-  
-    <article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2016/05/31/hello-world/" class="article-date">
-  	<time datetime="2016-05-31T02:54:03.000Z" itemprop="datePublished">2016-05-31</time>
-</a>
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/05/31/hello-world/">Hello World</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="leak_debug" data-title="一次曲折的内存泄漏debug记录" data-url="http://huohuoluo.github.io/2016/06/01/leak_debug/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"huohuoluo"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
 
 
 
 
-
-
-
-
-
-  
-  
 </div>
       <footer id="footer">
   <div class="outer">
@@ -335,8 +325,8 @@
 		fancybox: true,
 		mathjax: true,
 		animate: true,
-		isHome: true,
-		isPost: false,
+		isHome: false,
+		isPost: true,
 		isArchive: false,
 		isTag: false,
 		isCategory: false,
