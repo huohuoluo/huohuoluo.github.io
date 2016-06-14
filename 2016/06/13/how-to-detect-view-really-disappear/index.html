@@ -4,17 +4,30 @@
   <meta charset="utf-8">
   
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
-  <title>KISS</title>
+  <title>如何正确判断ViewController的退出 | KISS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description">
-<meta property="og:type" content="website">
-<meta property="og:title" content="KISS">
-<meta property="og:url" content="http://huohuoluo.github.io/index.html">
+  <meta name="description" content="通常我们需要在ViewController退出时，释放一些资源，例如取消广播监听，销毁CoreFoundation的一些对象等。 写在dealloc中，是肯定不合适的，因为一旦ViewController对象产生了内存泄漏，则关联的动作都会失败。
+写在viewDidDisappear事件中合适么？来看看什么情况下viewDidDisappear会被调用。
+场景一：
+
+在一个NavigationCo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何正确判断ViewController的退出">
+<meta property="og:url" content="http://huohuoluo.github.io/2016/06/13/how-to-detect-view-really-disappear/index.html">
 <meta property="og:site_name" content="KISS">
-<meta property="og:description">
+<meta property="og:description" content="通常我们需要在ViewController退出时，释放一些资源，例如取消广播监听，销毁CoreFoundation的一些对象等。 写在dealloc中，是肯定不合适的，因为一旦ViewController对象产生了内存泄漏，则关联的动作都会失败。
+写在viewDidDisappear事件中合适么？来看看什么情况下viewDidDisappear会被调用。
+场景一：
+
+在一个NavigationCo">
+<meta property="og:updated_time" content="2016-06-14T06:43:53.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="KISS">
-<meta name="twitter:description">
+<meta name="twitter:title" content="如何正确判断ViewController的退出">
+<meta name="twitter:description" content="通常我们需要在ViewController退出时，释放一些资源，例如取消广播监听，销毁CoreFoundation的一些对象等。 写在dealloc中，是肯定不合适的，因为一旦ViewController对象产生了内存泄漏，则关联的动作都会失败。
+写在viewDidDisappear事件中合适么？来看看什么情况下viewDidDisappear会被调用。
+场景一：
+
+在一个NavigationCo">
   
     <link rel="alternative" href="/atom.xml" title="KISS" type="application/atom+xml">
   
@@ -171,88 +184,7 @@
 	</div>
 </nav>
 
-      <div class="body-wrap">
-  
-    <article id="post-leak_debug" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2016/06/14/leak_debug/" class="article-date">
-  	<time datetime="2016-06-14T07:42:42.000Z" itemprop="datePublished">2016-06-14</time>
-</a>
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/06/14/leak_debug/">一次曲折的内存泄漏debug记录</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h4 id="先介绍问题"><a href="#先介绍问题" class="headerlink" title="先介绍问题"></a>先介绍问题</h4><p>JSAPI广播监听者为1个时，登录后会弹出两次对话框。  低概率出现。</p>
-<h4 id="问题诊断"><a href="#问题诊断" class="headerlink" title="问题诊断"></a>问题诊断</h4><p>判断是JSAPIBridgeImpl实例的内存泄漏。</p>
-<p>首先要抓出泄漏源。反复试了很多次，发现启动测试页面，如果按以下步骤操作，有机会重现：</p>
-<ol>
-<li>进入JSAPI测试网页；</li>
-<li>进入基金购买界面，然后等待超时锁屏；</li>
-<li>不登录，直接退出到首页。（退出过程中不会出现JSAPI测试网页）</li>
-<li>重新进入JSAPI测试网页，点击登录。</li>
-</ol>
-<p>知道重现方法后，仍旧无法分析出具体是哪一行代码导致了泄漏，只好借助instrument工具了。</p>
-<p>打开Allocation工具，开始执行前，注意勾选record reference counts选项（保证所有的引用都被记录）<br><img src="/img/leak1.png" alt="img"></p>
-<p>执行，重现问题后，立即停止运行，进入分析。输入对应实例的类名搜索实例，果然还在，点开引用记录查看分析。<br><img src="/img/leak2.png" alt="img"></p>
-<p>EQBJSAPIBridgeImpl的内存分布看不出来，我决定使用包含他的Controller来分析，因为从行为上看，Controller也被泄漏了，果然：<br><img src="/img/leak3.png" alt="img"></p>
-<p>由于CommonWebViewController的引用记录太多了，必须要挑重点才可能分析。  怀疑是block引用导致的内存泄漏，因此重点关注 <em>**block_copy</em> 命名的引用。 终于发现如上截图部分的程序栈调用有重大嫌疑。查看代码看看：</p>
-<p>工具显示是这一行代码导致了block copy</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">if (failure) &#123;</span><br><span class="line">    [sFailureCallbackArray addObject:[failure copy]];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>赶紧查看对应的释放函数，果然，一年前的代码，只在方法失败的时候，将sFailureCallbackArray清空，如果调用成功，该数组的内容将一直存在。</p>
-<p>判断该问题后，仔细想了一下，找出了必现该问题的方法，并进行验证。 果然每次都出现内存泄漏。  这点很重要，如果不能必现，说明这个bug并不是直接原因。</p>
-<p>修正对应代码，用上述方法重新验证，问题修复。至此，内存问题修复。</p>
-<p>但是，JSAPIImpl广播在内存泄漏后，仍然接收广播的问题，算解决了吗？  整理整个分析过程，以上内存泄漏只是引起这个问题的一个充分条件而非必要条件，下次某个地方内存管理没控制好，又会导致该问题发生。 因此，仍然需要找出更彻底的解决办法，来保证EQBJSBridgeImpl即使泄漏的情况下，也不再有效。</p>
-<p>具体内容，且看下回分解。</p>
-<p>参考</p>
-<p><a href="/2016/06/13/how-to-detect-view-really-disappear/">如何正确判断ViewController的退出</a></p>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/内存管理/">内存管理</a></li></ul>
-	</div>
-
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-how-to-detect-view-really-disappear" class="article article-type-post" itemscope itemprop="blogPost">
+      <div class="body-wrap"><article id="post-how-to-detect-view-really-disappear" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
       <a href="/2016/06/13/how-to-detect-view-really-disappear/" class="article-date">
@@ -268,12 +200,23 @@
       <header class="article-header">
         
   
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/06/13/how-to-detect-view-really-disappear/">如何正确判断ViewController的退出</a>
+    <h1 class="article-title" itemprop="name">
+      如何正确判断ViewController的退出
     </h1>
   
 
       </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/内存管理/">内存管理</a></li></ul>
+	</div>
+
+        
+
+        <div class="clearfix"></div>
+      </div>
       
     
     <div class="article-entry" itemprop="articleBody">
@@ -343,20 +286,23 @@
       
     </div>
     
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/内存管理/">内存管理</a></li></ul>
-	</div>
-
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
   </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/06/14/leak_debug/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          一次曲折的内存泄漏debug记录
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
   
 </article>
 
@@ -365,11 +311,28 @@
 
 
 
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="how-to-detect-view-really-disappear" data-title="如何正确判断ViewController的退出" data-url="http://huohuoluo.github.io/2016/06/13/how-to-detect-view-really-disappear/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"huohuoluo"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
 
 
 
-  
-  
+
 </div>
       <footer id="footer">
   <div class="outer">
@@ -393,8 +356,8 @@
 		fancybox: true,
 		mathjax: true,
 		animate: true,
-		isHome: true,
-		isPost: false,
+		isHome: false,
+		isPost: true,
 		isArchive: false,
 		isTag: false,
 		isCategory: false,
