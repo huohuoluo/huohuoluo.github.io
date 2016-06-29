@@ -173,6 +173,90 @@
 
       <div class="body-wrap">
   
+    <article id="post-bad-header-file" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/06/28/bad-header-file/" class="article-date">
+  	<time datetime="2016-06-28T07:39:01.000Z" itemprop="datePublished">2016-06-28</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/06/28/bad-header-file/">糟糕代码示例一：头文件常见问题</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h3 id="1-在public头文件中import非必要的头文件"><a href="#1-在public头文件中import非必要的头文件" class="headerlink" title="1. 在public头文件中import非必要的头文件"></a>1. 在public头文件中import非必要的头文件</h3><p>如果.h文件的定义、声明不依赖于另一个头文件，则不应import它；如果.m文件对它有依赖，应在.m文件中对其进行import.</p>
+<h3 id="2-模块内交叉依赖的对象，交叉import；"><a href="#2-模块内交叉依赖的对象，交叉import；" class="headerlink" title="2. 模块内交叉依赖的对象，交叉import；"></a>2. 模块内交叉依赖的对象，交叉import；</h3><p>应当以@class, @protocol 的方式，先进行类型声明；不要交叉import.</p>
+<h3 id="3-错误地在头文件中使用static声明静态变量"><a href="#3-错误地在头文件中使用static声明静态变量" class="headerlink" title="3. 错误地在头文件中使用static声明静态变量"></a>3. 错误地在头文件中使用static声明静态变量</h3><p>一般不在头文件中使用static来声明静态变量。static 声明变量时，表明该变量的作用域在模块内(.o文件)有效。  如果在头文件中声明， 所有import它的.m文件，实际上会对应有不同的变量实例。</p>
+<h3 id="4-在头文件中声明非公开方法、非protected字段"><a href="#4-在头文件中声明非公开方法、非protected字段" class="headerlink" title="4. 在头文件中声明非公开方法、非protected字段"></a>4. 在头文件中声明非公开方法、非protected字段</h3><p>一个类的公开的头文件主要包含以下内容：</p>
+<ul>
+<li>公开的：公开给使用者调用的方法、属性；对其他类的类簇扩展方法（公开）；</li>
+<li>受保护的：提供给子类访问的保护字段（读／写）；子类可以重写的保护方法；</li>
+<li>以上方法、属性的依赖项（类型定义、协议定义、宏定义、常量定义等）</li>
+</ul>
+<p>以下内容不宜在公开的头文件中定义：</p>
+<ul>
+<li>模块内使用的受保护方法（java  inner访问属性）、依赖项定义等，应当在另外一个.h文件中定义（类扩展等）；</li>
+<li>.m文件自己使用的私有字段、方法、常量等， 应当在.m文件开始时进行定义（类扩展、常量定义等）；</li>
+<li>其他组件相关的类簇方法，应由其他组件的头文件声明，不应由当前类提供。</li>
+</ul>
+<h3 id="5-引入不必要的类型依赖"><a href="#5-引入不必要的类型依赖" class="headerlink" title="5. 引入不必要的类型依赖"></a>5. 引入不必要的类型依赖</h3><p>如果可以使用基类对象，不应引入子类。</p>
+<p>例如，如果用UIViewController可以，不需要使用ChildViewController 子类；</p>
+<h3 id="6-命名冲突"><a href="#6-命名冲突" class="headerlink" title="6. 命名冲突"></a>6. 命名冲突</h3><p>需要恰当的使用前缀命名；</p>
+<h3 id="7-使用宏还是常量定义？"><a href="#7-使用宏还是常量定义？" class="headerlink" title="7. 使用宏还是常量定义？"></a>7. 使用宏还是常量定义？</h3><p>优先考虑使用常量定义，而不是使用宏定义。</p>
+<p>例如：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**定期存入*/</span></span><br><span class="line"><span class="meta">#define REGULARDEPOSIT      @<span class="meta-string">"090"</span>  //bad</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**基金网站分类代码（1: 股票型)*/</span></span><br><span class="line">FOUNDATION_EXTERN <span class="built_in">NSString</span> * <span class="keyword">const</span> gFundWebTypeCodeStock;<span class="comment">//good</span></span><br></pre></td></tr></table></figure>
+<h3 id="8-大杂烩的头文件"><a href="#8-大杂烩的头文件" class="headerlink" title="8. 大杂烩的头文件"></a>8. 大杂烩的头文件</h3><p>参考Constants.h, 里面包含了各类公共的Enum、常量、广播名称、宏定义等；  </p>
+<p>应当适当地进行分解：</p>
+<p>一般建议在组件的公开头文件内定义相关的Enum、常量、广播名称、宏定义；</p>
+<p>例如，以下定义可以放在交易模块的公共头文件内；</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**定期存入*/</span></span><br><span class="line"><span class="meta">#define REGULARDEPOSIT      @<span class="meta-string">"090"</span></span></span><br><span class="line"><span class="comment">/**定期转换*/</span></span><br><span class="line"><span class="meta">#define REGULARCONVERSION   @<span class="meta-string">"982"</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span><br><span class="line"> *    存入／申购 银行支付方式</span><br><span class="line"> */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">enum</span> &#123;</span><br><span class="line">    EnumDepositeTypeInvalid = <span class="number">0</span>,</span><br><span class="line">    <span class="comment">/**</span><br><span class="line">     *    代扣方式</span><br><span class="line">     */</span></span><br><span class="line">    EnumDepositeTypeDaiKou,</span><br><span class="line">    <span class="comment">/**</span><br><span class="line">     *    B2C方式</span><br><span class="line">     */</span></span><br><span class="line">    EnumDepositeTypeB2C</span><br><span class="line">&#125;EnumDepositeType;</span><br></pre></td></tr></table></figure>
+<p>非公用依赖的定义，坚决不能放在此类公共定义的头文件中，例如：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//start_laeding</span></span><br><span class="line"><span class="meta">#define START_DYNAMIC_IMAGE_KEY                 @<span class="meta-string">"start.jpg"</span></span></span><br><span class="line"><span class="meta">#define START_DYNAMIC_BACKGROUND_IMAGE_KEY      @<span class="meta-string">"start_background.jpg"</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//config api</span></span><br><span class="line"><span class="meta">#define IS_FIRST_LAUNCH_KEY             @<span class="meta-string">"isfirstlaunch"</span>    //by yangjh</span></span><br><span class="line"><span class="meta">#define APP_VERSION_KEY                 @<span class="meta-string">"app_version"</span>      //by yangjh</span></span><br><span class="line"><span class="meta">#define APPCONFIG_KEY                   @<span class="meta-string">"appconfig"</span>        //zenghz</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//user api</span></span><br><span class="line"><span class="meta">#define LOGINRESULT_KEY                @<span class="meta-string">"loginresult"</span>      //by yangjh</span></span><br><span class="line"><span class="meta">#define USERINFO_KEY                    @<span class="meta-string">"userinfo"</span></span></span><br><span class="line"><span class="meta">#define LOGINDATE_KEY                   @<span class="meta-string">"logindate"</span>        //by yangjh</span></span><br><span class="line"><span class="meta">#define LOGINEDUSERS_KEY                @<span class="meta-string">"loginedusers"</span>     //by yangjh</span></span><br><span class="line"><span class="meta">#define SCREENLOCK_TYPE_KEY       @<span class="meta-string">"screenlocktype"</span>     //by yangjh</span></span><br><span class="line"><span class="meta">#define LASTLOGINUSER_KEY        @<span class="meta-string">"lastloginuser"</span>       //by yangjh</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//message api</span></span><br><span class="line"><span class="meta">#define MAXMSGIDFROMSERVER_KEY      @<span class="meta-string">"currentUserMaxMsgIdFromServer"</span>    //by yangjh</span></span><br><span class="line"><span class="meta">#define UNREADEDCOUNTFROMSERVER_KEY @<span class="meta-string">"currentUserUnReadedCountFromServer"</span>   //by yangjh</span></span><br><span class="line"><span class="meta">#define REFRESHMESSAGETIME_KEY      @<span class="meta-string">"refreshMessageTime"</span>   //by yangjh</span></span><br><span class="line"><span class="meta">#define SECONDS_TO_REFRESHMESSAGE   300</span></span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+	</div>
+
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-UIViewController-Life-Cycle" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
