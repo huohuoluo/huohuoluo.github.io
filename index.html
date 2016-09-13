@@ -173,6 +173,83 @@
 
       <div class="body-wrap">
   
+    <article id="post-Generic-Type-In-ObjC" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/09/13/Generic-Type-In-ObjC/" class="article-date">
+  	<time datetime="2016-09-13T01:46:05.000Z" itemprop="datePublished">2016-09-13</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/09/13/Generic-Type-In-ObjC/">ObjC的泛型</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>XCode 7后，苹果为ObjC增加了泛型的支持。原生的容器类，支持类型指定。也算是弥补了ObjC跟现代编程语言的一些差距，但本质上还是有一些不同的，主要包括：</p>
+<h2 id="1-轻泛型：编译时检查类型，运行时还是弱类型"><a href="#1-轻泛型：编译时检查类型，运行时还是弱类型" class="headerlink" title="1. 轻泛型：编译时检查类型，运行时还是弱类型"></a>1. 轻泛型：编译时检查类型，运行时还是弱类型</h2><p>如何理解轻泛型呢？ 看一下ObjC中的泛型使用过程，可以一窥其貌：</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NSMutableArray</span>&lt;MyObject *&gt; *theOCArray = [[<span class="built_in">NSMutableArray</span> alloc] init];</span><br><span class="line">MyObject *obj1 = [[MyObject alloc] initWithDesc:<span class="string">@"obj1 for oc array"</span>];</span><br><span class="line">[theOCArray addObject:obj1];</span><br><span class="line">[(<span class="built_in">NSMutableArray</span>&lt;<span class="built_in">NSString</span> *&gt; *)theOCArray addObject:<span class="string">@"string"</span>];<span class="comment">//OC可以强制类型转换，运行时其实存储的是id</span></span><br><span class="line">    </span><br><span class="line">std::vector&lt;__<span class="keyword">strong</span> MyObject *&gt; theVector;</span><br><span class="line">MyObject *obj2 = [[MyObject alloc] initWithDesc:<span class="string">@"obj2 for c++ vector"</span>];</span><br><span class="line">theVector.push_back(obj2);</span><br><span class="line">    </span><br><span class="line"><span class="comment">//((std::vector&lt;__strong NSString *&gt;)theVector).push_back(@"hello");//编译错误，C++无法做类型强转</span></span><br></pre></td></tr></table></figure>
+<p>从NSMutableArray<myobject *=""> *theOCArray = [[NSMutableArray alloc] init];可以看出，ObjC的泛型，仅针对声明，实际运行时的对象，和原来并没有差别，也就是说，可以存储任意类型的对象。</myobject></p>
+<p>即：</p>
+<blockquote>
+<p><strong>ObjC的轻泛型，指仅在编译时做类型检查，实际运行时并不直接支持泛型。</strong></p>
+</blockquote>
+<p>相比，c++ 中的泛型（又称模版代码），实际上在编译时生成了对应的实际类型，是严格的类型定义，运行时也是特定的类型。</p>
+<h2 id="2-对使用runtime进行的反向序列化没有影响"><a href="#2-对使用runtime进行的反向序列化没有影响" class="headerlink" title="2. 对使用runtime进行的反向序列化没有影响"></a>2. 对使用runtime进行的反向序列化没有影响</h2><p>如上所述，ObjC的泛型的类型约束在运行时不起作用，因此，对使用runtime进行反向序列化对象，没有任何影响。</p>
+<h2 id="3-协变与逆变"><a href="#3-协变与逆变" class="headerlink" title="3. 协变与逆变"></a>3. 协变与逆变</h2><p>__convariant ： 协变，指向父类对象的指针，可以用子类的对象代替（用子类对象代替父类对象）</p>
+<p>__contravariant : 逆变，指向子类对象的指针，用父类对象代替（用父类对象代替子类）</p>
+<p>协变是比较容易理解的，子类对象本身就是父类对象 isKindOfClass.  但在容器中，如c++容器，则不一定支持，例如值对象，是不支持的。因为占用的内存大小不一样，因为子类对象和父类对象占用的内存大小不一样。</p>
+<p>但ObjC中，总是使用引用对象，则认为协变是很自然的行为。</p>
+<p>我们看NSArray的头文件描述，是支持协变的</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">NSArray</span>&lt;<span class="title">__covariant</span> <span class="title">ObjectType</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>因此这段代码是没有问题的</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NSArray</span>&lt;<span class="built_in">NSString</span> *&gt; *array1;</span><br><span class="line"><span class="built_in">NSArray</span>&lt;<span class="built_in">NSMutableString</span> *&gt; *array2;</span><br><span class="line">array1 = array2;<span class="comment">//协变</span></span><br></pre></td></tr></table></figure>
+<p>NSMutableArray 是不支持协变的，因此不能向上述那样处理</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NSMutableArray</span>&lt;<span class="built_in">NSString</span> *&gt; *muArray1;</span><br><span class="line"><span class="built_in">NSMutableArray</span>&lt;<span class="built_in">NSMutableString</span> *&gt; *muArray2;</span><br><span class="line">muArray1 = muArray2;<span class="comment">//编译失败，NSMutableArray不支持协变</span></span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>从类型安全上来说，ObjC容器加入泛型支持后，可以比较好地检测出类型不匹配的问题，对于编程安全来说，是一个比较好的进步。建议使用。</p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/iOS/">iOS</a></li></ul>
+	</div>
+
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-bad-header-file" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
